@@ -1,0 +1,81 @@
+buildscript {
+    ext {
+        springBootVersion = '1.4.0.RELEASE'
+        releasePluginVersion = '2.4.0'
+
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath("net.researchgate:gradle-release:${releasePluginVersion}")
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'spring-boot'
+apply plugin: 'maven'
+apply plugin: 'net.researchgate.release'
+
+jar {
+    baseName = 'demo'
+    version = '0.0.1-SNAPSHOT'
+}
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+project.ext.date = new Date()
+processResources {
+    filesMatching('**/*.properties') {
+        expand(project.properties)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+    compile('org.springframework.boot:spring-boot-starter-actuator')
+    compile('org.springframework.boot:spring-boot-starter-web')
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+}
+
+// Run uploadArchives after a release
+afterReleaseBuild.dependsOn uploadArchives
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+
+            repository(url: 'http://192.168.33.52:8081/content/repositories/releases') {
+                authentication(
+                        userName: 'deployment',
+                        password: 'deployment123'
+                )
+            }
+
+            snapshotRepository(url: "http://192.168.33.52:8081/content/repositories/snapshots") {
+                authentication(
+                        userName: 'deployment',
+                        password: 'deployment123'
+                )
+            }
+
+            pom {
+                groupId = project.group
+                artifactId = project.artifact
+                version = project.version
+                project {
+                    parent {
+                        groupId "org.springframework.boot"
+                        artifactId "spring-boot-starter-parent"
+                        version "$springBootVersion"
+                    }
+                }
+            }
+        }
+    }
+}
